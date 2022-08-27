@@ -1,0 +1,49 @@
+version: "3.7"
+services:
+  mysql:   
+    image: "mysql/mysql-server:5.7"
+    restart: always
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ./data/mysqldata:/var/lib/mysql
+      # if you need my.cnf file, here...
+    environment:
+      - MYSQL_ROOT_PASSWORD=${mysqlRootPassword}
+      - MYSQL_DATABASE=${mysqlDataBase}
+      - MYSQL_USER=${mysqlUserName}
+      - MYSQL_PASSWORD=${mysqlPassword}
+    ports:
+      - "3306:3306"
+  redis:
+      image: redis:alpine
+      command: redis-server --port 6379
+      labels:
+        - "name=redis"
+        - "mode=standalone"
+      ports:
+        - "6379:6379"
+  app:
+    build:
+      context: ./
+      # select docker base (localhost, development, production) - default localhost
+      target: ${NODE_ENV:-localhost}
+    environment:
+      redisHost: redis
+      redisPort: 6379
+      mysqlHost: mysql
+      mysqlPort: 3306
+      mysqlUserName: ${mysqlUserName}
+      mysqlDataBase: ${mysqlDataBase}
+      mysqlPassword: ${mysqlPassword}
+      # select app envierment (localhost, development, production) - default localhost
+      NODE_ENV: ${NODE_ENV:-localhost}
+    ports: 
+      - "3000:3000"
+    volumes:
+      - .:/app
+    command: npm run dockerStart
+    depends_on:
+      - redis
+      - mysql
